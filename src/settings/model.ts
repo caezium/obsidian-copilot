@@ -105,6 +105,8 @@ export interface CopilotSettings {
   projectList: Array<ProjectConfig>;
   passMarkdownImages: boolean;
   enableCustomPromptTemplating: boolean;
+  // Provider-level base URLs
+  providerBaseUrls?: Record<string, string>;
 }
 
 export const settingsStore = createStore();
@@ -327,4 +329,48 @@ function mergeActiveModels(
   });
 
   return Array.from(modelMap.values());
+}
+
+/**
+ * Exports all settings as a JSON string.
+ */
+export function exportSettings(): string {
+  const settings = { ...getSettings() };
+  // Remove all API keys from export
+  const apiKeyFields: (keyof CopilotSettings)[] = [
+    "openAIApiKey",
+    "anthropicApiKey",
+    "cohereApiKey",
+    "azureOpenAIApiKey",
+    "googleApiKey",
+    "openRouterAiApiKey",
+    "xaiApiKey",
+    "mistralApiKey",
+    "deepseekApiKey",
+    "plusLicenseKey",
+    "groqApiKey",
+    "huggingfaceApiKey",
+  ];
+  for (const key of apiKeyFields) {
+    if (key in settings) (settings as any)[key] = "";
+  }
+  // Also remove apiKey from all models
+  if (Array.isArray(settings.activeModels)) {
+    settings.activeModels = settings.activeModels.map((m: any) => ({ ...m, apiKey: undefined }));
+  }
+  if (Array.isArray(settings.activeEmbeddingModels)) {
+    settings.activeEmbeddingModels = settings.activeEmbeddingModels.map((m: any) => ({
+      ...m,
+      apiKey: undefined,
+    }));
+  }
+  return JSON.stringify(settings, null, 2);
+}
+
+/**
+ * Imports settings from a JSON string. Overwrites all settings.
+ */
+export function importSettings(json: string) {
+  const parsed = JSON.parse(json);
+  setSettings(parsed);
 }

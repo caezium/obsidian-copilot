@@ -266,7 +266,7 @@ function ApiKeyModalContent({ onClose }: ApiKeyModalContentProps) {
   };
 
   return (
-    <div className="tw-max-h-[600px] tw-overflow-y-auto tw-p-4 sm:tw-max-w-[500px]">
+    <div className="tw-rounded-md tw-border tw-bg-primary tw-p-4 dark:tw-bg-secondary">
       <div className="tw-mb-4">
         <h2 className="tw-text-xl tw-font-bold">AI Provider Settings</h2>
         <p className="tw-text-sm tw-text-muted">
@@ -274,45 +274,16 @@ function ApiKeyModalContent({ onClose }: ApiKeyModalContentProps) {
         </p>
       </div>
 
-      <div className="tw-space-y-6 tw-py-4">
-        <div className="tw-space-y-4">
+      <div className="tw-space-y-8 tw-py-4">
+        <div className="tw-space-y-6">
           {providers.map((item: ProviderKeyItem) => (
             <React.Fragment key={item.provider}>
-              <div className="tw-flex tw-flex-col tw-gap-2">
-                <div className="tw-flex tw-items-end tw-gap-2 tw-font-medium">
-                  <div className="tw-truncate">{getProviderLabel(item.provider)}</div>
-                </div>
-                <div className="tw-flex tw-flex-row tw-items-center tw-gap-2">
-                  <div className="tw-flex-1">
-                    <PasswordInput
-                      className="tw-max-w-full"
-                      value={item.apiKey}
-                      onChange={(v) => handleApiKeyChange(item.provider, v)}
-                      disabled={verifyingProviders.has(item.provider)}
-                    />
+              <div className="tw-flex tw-flex-col tw-gap-3 tw-rounded-lg tw-border tw-bg-primary tw-p-4 tw-shadow-sm dark:tw-bg-secondary">
+                <div className="tw-flex tw-items-center tw-justify-between tw-gap-2">
+                  <div className="tw-truncate tw-text-base tw-font-medium">
+                    {getProviderLabel(item.provider)}
                   </div>
-                  <div className="tw-w-[72px]">
-                    {!item.isVerified ? (
-                      <Button
-                        onClick={() => verifyApiKey(item.provider, item.apiKey)}
-                        disabled={!item.apiKey || verifyingProviders.size > 0}
-                        variant="secondary"
-                        size="sm"
-                        className="tw-w-full tw-whitespace-nowrap"
-                      >
-                        {verifyingProviders.has(item.provider) ? (
-                          <Loader2 className="tw-mr-2 tw-size-4 tw-animate-spin" />
-                        ) : (
-                          "Verify"
-                        )}
-                      </Button>
-                    ) : (
-                      <span className="tw-flex tw-h-9 tw-items-center tw-justify-center tw-text-sm tw-text-success">
-                        Verified
-                      </span>
-                    )}
-                  </div>
-                  <div className="">
+                  <div className="tw-flex tw-items-center tw-gap-2">
                     <Button
                       onClick={() => {
                         const nextExpanded =
@@ -331,7 +302,7 @@ function ApiKeyModalContent({ onClose }: ApiKeyModalContentProps) {
                       disabled={!item.apiKey || verifyingProviders.size > 0}
                       variant="secondary"
                       size="sm"
-                      className="tw-flex tw-w-full tw-items-center tw-justify-center tw-gap-1 tw-whitespace-nowrap tw-p-0.5"
+                      className="tw-flex tw-items-center tw-gap-1 tw-whitespace-nowrap tw-px-2 tw-py-1"
                     >
                       Add Model
                       {expandedProvider === item.provider ? (
@@ -340,23 +311,57 @@ function ApiKeyModalContent({ onClose }: ApiKeyModalContentProps) {
                         <ChevronDown className="tw-ml-1 tw-size-4" />
                       )}
                     </Button>
+                    <div className="tw-w-[72px]">
+                      {!item.isVerified ? (
+                        <Button
+                          onClick={() => verifyApiKey(item.provider, item.apiKey)}
+                          disabled={!item.apiKey || verifyingProviders.size > 0}
+                          variant="secondary"
+                          size="sm"
+                          className="tw-w-full tw-whitespace-nowrap"
+                        >
+                          {verifyingProviders.has(item.provider) ? (
+                            <Loader2 className="tw-mr-2 tw-size-4 tw-animate-spin" />
+                          ) : (
+                            "Verify"
+                          )}
+                        </Button>
+                      ) : (
+                        <span className="tw-flex tw-h-9 tw-items-center tw-justify-center tw-text-sm tw-text-success">
+                          Verified
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <div>
-                  {getProviderInfo(item.provider).keyManagementURL && (
-                    <a
-                      href={getProviderInfo(item.provider).keyManagementURL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="tw-text-[10px] tw-text-accent hover:tw-text-accent-hover sm:tw-text-xs"
-                    >
-                      Get {getProviderLabel(item.provider)} Key
-                    </a>
-                  )}
+                <div className="tw-mt-2 tw-flex tw-flex-col tw-gap-2">
+                  <div className="tw-items-center tw-gap-2">
+                    <div className="tw-flex-1">
+                      <PasswordInput
+                        className="tw-max-w-full"
+                        value={item.apiKey}
+                        onChange={(v) => handleApiKeyChange(item.provider, v)}
+                        disabled={verifyingProviders.has(item.provider)}
+                        placeholder="Enter API Key"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    {getProviderInfo(item.provider).keyManagementURL && (
+                      <a
+                        href={getProviderInfo(item.provider).keyManagementURL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="tw-text-xs tw-text-accent hover:tw-text-accent-hover"
+                      >
+                        Get {getProviderLabel(item.provider)} Key
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
               <Collapsible open={expandedProvider === item.provider} className="tw-mt-2">
-                <CollapsibleContent className="tw-rounded-md tw-p-3">
+                <CollapsibleContent className="tw-rounded-md tw-p-3 tw-bg-muted/40">
                   <div className="tw-flex tw-flex-col tw-gap-2">
                     <FormField
                       label="Model"

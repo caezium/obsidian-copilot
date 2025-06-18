@@ -365,17 +365,20 @@ export const ModelAddDialog: React.FC<ModelAddDialogProps> = ({
   };
 
   const getPlaceholderUrl = () => {
+    // Use provider default from settings if set, else fallback to ProviderInfo, else fallback to example
+    const providerDefault =
+      settings.providerBaseUrls?.[model.provider] ||
+      providerInfo.host ||
+      "https://api.example.com/v1";
     if (model.provider !== ChatModelProviders.AZURE_OPENAI) {
-      return providerInfo.host;
+      return providerDefault;
     }
-
     const instanceName = model.azureOpenAIApiInstanceName || "[instance]";
     const deploymentName = isEmbeddingModel
       ? model.azureOpenAIApiEmbeddingDeploymentName || "[deployment]"
       : model.azureOpenAIApiDeploymentName || "[deployment]";
     const apiVersion = model.azureOpenAIApiVersion || "[api-version]";
     const endpoint = isEmbeddingModel ? "embeddings" : "chat/completions";
-
     return `https://${instanceName}.openai.azure.com/openai/deployments/${deploymentName}/${endpoint}?api-version=${apiVersion}`;
   };
 
@@ -472,10 +475,13 @@ export const ModelAddDialog: React.FC<ModelAddDialogProps> = ({
             </Select>
           </FormField>
 
-          <FormField label="Base URL" description="Leave it blank, unless you are using a proxy.">
+          <FormField
+            label="Base URL"
+            description="Leave blank unless you want this model to use a different base URL than the provider default/setting."
+          >
             <Input
               type="text"
-              placeholder={getPlaceholderUrl() || "https://api.example.com/v1"}
+              placeholder={getPlaceholderUrl()}
               value={model.baseUrl || ""}
               onChange={(e) => setModel({ ...model, baseUrl: e.target.value })}
             />

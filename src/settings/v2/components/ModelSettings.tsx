@@ -1,21 +1,36 @@
 import { CustomModel } from "@/aiParams";
 import { SettingItem } from "@/components/ui/setting-item";
-import { BUILTIN_CHAT_MODELS, BUILTIN_EMBEDDING_MODELS } from "@/constants";
+import {
+  BUILTIN_CHAT_MODELS,
+  BUILTIN_EMBEDDING_MODELS,
+  ProviderInfo,
+  ChatModelProviders,
+  EmbeddingModelProviders,
+} from "@/constants";
 import EmbeddingManager from "@/LLMProviders/embeddingManager";
 import ProjectManager from "@/LLMProviders/projectManager";
 import { logError } from "@/logger";
-import { setSettings, updateSetting, useSettingsValue } from "@/settings/model";
+import {
+  setSettings,
+  updateSetting,
+  useSettingsValue,
+  exportSettings,
+  importSettings,
+} from "@/settings/model";
 import { ModelAddDialog } from "@/settings/v2/components/ModelAddDialog";
 import { ModelEditDialog } from "@/settings/v2/components/ModelEditDialog";
 import { ModelTable } from "@/settings/v2/components/ModelTable";
 import { Notice } from "obsidian";
 import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 export const ModelSettings: React.FC = () => {
   const settings = useSettingsValue();
   const [editingModel, setEditingModel] = useState<CustomModel | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showAddEmbeddingDialog, setShowAddEmbeddingDialog] = useState(false);
+  const [importPreview, setImportPreview] = useState<string | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
 
   const onDeleteModel = (modelKey: string) => {
     const [modelName, provider] = modelKey.split("|");
@@ -106,8 +121,132 @@ export const ModelSettings: React.FC = () => {
     new Notice("Embedding models refreshed successfully");
   };
 
+  // Provider-level base URL change handler
+  const handleProviderBaseUrlChange = (provider: string, value: string) => {
+    const newBaseUrls = { ...(settings.providerBaseUrls || {}) };
+    if (value) {
+      newBaseUrls[provider] = value;
+    } else {
+      delete newBaseUrls[provider];
+    }
+    updateSetting("providerBaseUrls", newBaseUrls);
+  };
+
+  // Export settings handler
+  const handleExport = () => {
+    const data = exportSettings();
+    const blob = new Blob([data], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "copilot-settings.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Import settings handler
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        JSON.parse(text); // Validate JSON
+        setImportPreview(text);
+        setImportError(null);
+      } catch {
+        setImportPreview(null);
+        setImportError("Invalid JSON file.");
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleImportConfirm = () => {
+    if (importPreview) {
+      try {
+        importSettings(importPreview);
+        setImportPreview(null);
+        setImportError(null);
+        new Notice("Settings imported successfully. Please reload the app if needed.");
+      } catch (err) {
+        setImportError("Failed to import settings: " + (err as Error).message);
+      }
+    }
+  };
+
   return (
     <div className="tw-space-y-4">
+      {/* Provider-level base URL settings */}
+      <section>
+        <div className="tw-mb-2 tw-text-lg tw-font-bold">Provider Default Base URLs</div>
+        <div className="tw-mb-2 tw-text-xs tw-text-muted">
+          Set a default base URL for each provider. All new models will use this by default.
+          Individual models can override it in their settings if needed.
+        </div>
+        <div className="tw-grid tw-grid-cols-1 tw-gap-4 md:tw-grid-cols-2">
+          {[...Object.values(ChatModelProviders), ...Object.values(EmbeddingModelProviders)]
+            .filter((provider, idx, arr) => arr.indexOf(provider) === idx) // dedupe
+            .map((provider) => {
+              const info = ProviderInfo[provider as keyof typeof ProviderInfo];
+              const currentDefault =
+                settings.providerBaseUrls?.[provider] || info?.host || "https://api.example.com/v1";
+              return (
+                <div key={provider} className="tw-flex tw-items-center tw-gap-2">
+                  <label className="tw-w-32 tw-font-medium">{info?.label || provider}</label>
+                  <input
+                    type="text"
+                    className="tw-flex-1 tw-rounded tw-border tw-px-2 tw-py-1 tw-text-xs"
+                    placeholder={currentDefault}
+                    value={settings.providerBaseUrls?.[provider] || ""}
+                    onChange={(e) => handleProviderBaseUrlChange(provider, e.target.value)}
+                  />
+                </div>
+              );
+            })}
+        </div>
+      </section>
+
+      {/* Export/Import settings */}
+      <section>
+        <div className="tw-mb-2 tw-text-lg tw-font-bold">Export / Import Settings</div>
+        <div className="tw-flex tw-items-center tw-gap-4">
+          <Button variant="secondary" size="sm" onClick={handleExport}>
+            Export Settings
+          </Button>
+          <Button variant="secondary" size="sm" asChild>
+            <label className="tw-inline-flex tw-cursor-pointer tw-items-center tw-gap-2">
+              <span>Import Settings</span>
+              <input
+                type="file"
+                accept="application/json"
+                style={{ display: "none" }}
+                onChange={handleImport}
+              />
+            </label>
+          </Button>
+        </div>
+        <div className="tw-mt-2 tw-text-xs tw-text-warning">
+          API keys are <b>NOT</b> exported. Base URLs and other settings are included.
+        </div>
+        {importError && <div className="tw-mt-2 tw-text-xs tw-text-error">{importError}</div>}
+        {importPreview && (
+          <div className="tw-bg-muted tw-mt-2 tw-rounded tw-p-2">
+            <div className="tw-mb-2">Preview import (first 20 lines):</div>
+            <pre style={{ maxHeight: 200, overflow: "auto" }}>
+              {importPreview.split("\n").slice(0, 20).join("\n")}
+            </pre>
+            <Button variant="secondary" size="sm" onClick={handleImportConfirm}>
+              Confirm Import
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setImportPreview(null)}>
+              Cancel
+            </Button>
+          </div>
+        )}
+      </section>
+
       <section>
         <div className="tw-mb-3 tw-text-xl tw-font-bold">Chat Models</div>
         <ModelTable

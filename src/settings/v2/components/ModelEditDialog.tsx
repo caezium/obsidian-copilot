@@ -167,7 +167,10 @@ export const ModelEditDialog: React.FC<ModelEditDialogProps> = ({
             <Input type="text" value={getProviderLabel(localModel.provider)} disabled />
           </FormField>
 
-          <FormField label="Base URL" description="Leave it blank, unless you are using a proxy.">
+          <FormField
+            label="Base URL"
+            description="Leave blank unless you want this model to use a different base URL than the provider default."
+          >
             <Input
               type="text"
               placeholder={getPlaceholderUrl()}

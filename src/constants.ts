@@ -416,7 +416,7 @@ export interface ProviderMetadata {
 export const ProviderInfo: Record<Provider, ProviderMetadata> = {
   [ChatModelProviders.OPENAI]: {
     label: "OpenAI",
-    host: "https://api.openai.com",
+    host: "https://api.openai.com/v1",
     keyManagementURL: "https://platform.openai.com/api-keys",
     listModelURL: "https://api.openai.com/v1/models",
     testModel: ChatModels.GPT_41,

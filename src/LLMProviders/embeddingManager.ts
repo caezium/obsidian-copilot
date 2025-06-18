@@ -226,12 +226,14 @@ export default class EmbeddingManager {
       },
       [EmbeddingModelProviders.OPENAI]: {
         modelName,
-        apiKey: await getDecryptedKey(customModel.apiKey || settings.openAIApiKey),
-        timeout: 10000,
+        openAIApiKey: await getDecryptedKey(customModel.apiKey || settings.openAIApiKey),
         batchSize: getSettings().embeddingBatchSize,
+        timeout: 10000,
         configuration: {
-          baseURL: customModel.baseUrl,
+          baseURL:
+            customModel.baseUrl || settings.openAIProxyBaseUrl || "https://api.openai.com/v1",
           fetch: customModel.enableCors ? safeFetch : undefined,
+          organization: await getDecryptedKey(customModel.openAIOrgId || settings.openAIOrgId),
         },
       },
       [EmbeddingModelProviders.COHEREAI]: {
@@ -291,7 +293,14 @@ export default class EmbeddingManager {
       const modelToTest = { ...model, enableCors };
       const config = await this.getEmbeddingConfig(modelToTest);
       const testModel = new (this.getProviderConstructor(modelToTest))(config);
-      await testModel.embedQuery("test");
+      try {
+        await testModel.embedQuery("test");
+      } catch (error) {
+        // Handle error response
+        const errorMessage =
+          error.response?.data?.error?.message || error.message || "Unknown error";
+        throw new Error(errorMessage);
+      }
     };
 
     try {

@@ -118,7 +118,8 @@ export default class ChatModelManager {
         modelName: modelName,
         openAIApiKey: await getDecryptedKey(customModel.apiKey || settings.openAIApiKey),
         configuration: {
-          baseURL: customModel.baseUrl,
+          baseURL:
+            customModel.baseUrl || settings.openAIProxyBaseUrl || "https://api.openai.com/v1",
           fetch: customModel.enableCors ? safeFetch : undefined,
           organization: await getDecryptedKey(customModel.openAIOrgId || settings.openAIOrgId),
         },
@@ -438,9 +439,16 @@ export default class ChatModelManager {
         ...pingConfig,
         ...tokenConfig,
       });
-      await testModel.invoke([{ role: "user", content: "hello" }], {
-        timeout: 3000,
-      });
+      try {
+        await testModel.invoke([{ role: "user", content: "hello" }], {
+          timeout: 3000,
+        });
+      } catch (error) {
+        // Handle error response
+        const errorMessage =
+          error.response?.data?.error?.message || error.message || "Unknown error";
+        throw new Error(errorMessage);
+      }
     };
 
     try {
